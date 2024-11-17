@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry Dash-like Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(to bottom, #023047, #8ecae6);
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            margin: 20px 0;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .controls button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+            background: #fb8500;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .controls button:hover {
+            background: #ff006e;
+        }
+        #upload {
+            margin-top: 10px;
+        }
+        .game-container {
+            display: grid;
+            grid-template-columns: repeat(50, 20px);
+            grid-template-rows: repeat(10, 20px);
+            gap: 1px;
+            background: #023047;
+            padding: 10px;
+        }
+        .cell {
+            width: 20px;
+            height: 20px;
+            background: #ffffff;
+            border: 1px solid #ccc;
+        }
+        .cell.block {
+            background: #fb8500;
+        }
+        .cell.spike {
+            background: #ff006e;
+        }
+        .cell.player {
+            background: #219ebc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Geometry Dash-like Game</h1>
+    <div class="controls">
+        <button id="start-btn">Start</button>
+        <button id="restart-btn">Restart</button>
+        <input type="file" id="upload" accept=".json">
+    </div>
+    <div id="game-container" class="game-container"></div>
+
+    <script>
+        const gameContainer = document.getElementById("game-container");
+        const startButton = document.getElementById("start-btn");
+        const restartButton = document.getElementById("restart-btn");
+        const uploadInput = document.getElementById("upload");
+
+        const levelData = [];
+        const gridWidth = 50;
+        const gridHeight = 10;
+        let player = { x: 0, y: 9, velocityY: 0, jumping: false };
+        let gameInterval = null;
+
+        // Initialize empty grid
+        function initializeGrid() {
+            gameContainer.innerHTML = "";
+            for (let y = 0; y < gridHeight; y++) {
+                for (let x = 0; x < gridWidth; x++) {
+                    const cell = document.createElement("div");
+                    cell.classList.add("cell");
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    gameContainer.appendChild(cell);
+                }
+            }
+        }
+
+        // Load level data into the grid
+        function loadLevel(data) {
+            initializeGrid();
+            data.forEach((element) => {
+                const { x, y, type } = element;
+                const cell = getCell(x, y);
+                if (cell) cell.classList.add(type);
+            });
+            renderPlayer();
+        }
+
+        // Render the player
+        function renderPlayer() {
+            const cells = document.querySelectorAll(".cell.player");
+            cells.forEach((cell) => cell.classList.remove("player"));
+            const playerCell = getCell(player.x, player.y);
+            if (playerCell) playerCell.classList.add("player");
+        }
+
+        // Get a specific cell
+        function getCell(x, y) {
+            return document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+        }
+
+        // Start the game
+        function startGame() {
+            if (gameInterval) clearInterval(gameInterval);
+
+            gameInterval = setInterval(() => {
+                updateGame();
+            }, 100);
+        }
+
+        // Restart the game
+        function restartGame() {
+            player = { x: 0, y: 9, velocityY: 0, jumping: false };
+            renderPlayer();
+            clearInterval(gameInterval);
+        }
+
+        // Update game logic
+        function updateGame() {
+            // Apply gravity
+            player.velocityY += 0.5;
+
+            // Check for collision with ground or blocks
+            if (player.velocityY > 0) {
+                const below = getCell(player.x, player.y + 1);
+                if (below && (below.classList.contains("block") || player.y + 1 >= gridHeight)) {
+                    player.velocityY = 0;
+                    player.jumping = false;
+                }
+            }
+
+            // Update player position
+            player.y += player.velocityY;
+
+            // Ensure player stays in bounds
+            if (player.y >= gridHeight) {
+                player.y = gridHeight - 1;
+            }
+
+            // Move player to the right if no block ahead
+            const ahead = getCell(player.x + 1, player.y);
+            if (ahead && !ahead.classList.contains("block")) {
+                player.x++;
+            }
+
+            // Check for spikes
+            const currentCell = getCell(player.x, player.y);
+            if (currentCell && currentCell.classList.contains("spike")) {
+                alert("Game Over!");
+                restartGame();
+            }
+
+            // Check for win condition
+            if (player.x >= gridWidth - 1) {
+                alert("You Win!");
+                restartGame();
+            }
+
+            renderPlayer();
+        }
+
+        // Handle jump
+        window.addEventListener("keydown", (e) => {
+            if (e.code === "Space" && !player.jumping) {
+                player.velocityY = -2.5;
+                player.jumping = true;
+            }
+        });
+
+        // Handle level upload
+        uploadInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const data = JSON.parse(reader.result);
+                    loadLevel(data);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Button actions
+        startButton.addEventListener("click", startGame);
+        restartButton.addEventListener("click", restartGame);
+
+        // Initialize empty grid on load
+        initializeGrid();
+    </script>
+</body>
+</html>
