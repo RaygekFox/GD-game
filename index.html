@@ -87,10 +87,14 @@
         // Initialize empty grid
         function initializeGrid() {
             gameContainer.innerHTML = "";
-            for (let y = 0; y < gridHeight; y++) {
+            for (let y = 0; y < (gridHeight+1); y++) {
                 for (let x = 0; x < gridWidth; x++) {
                     const cell = document.createElement("div");
                     cell.classList.add("cell");
+                    // Add blocks for the bottom row
+                    if (y === gridHeight) {
+                        cell.classList.add("block");
+                    }
                     cell.dataset.x = x;
                     cell.dataset.y = y;
                     gameContainer.appendChild(cell);
@@ -143,12 +147,14 @@
             // Apply gravity
             player.velocityY += 0.5;
 
-            // Check for collision with ground or blocks
+            // Check for collision with blocks
             if (player.velocityY > 0) {
-                const below = getCell(player.x, player.y + 1);
-                if (below && (below.classList.contains("block") || player.y + 1 >= gridHeight)) {
+                const below = getCell(player.x, Math.floor(player.y + 1));
+                if (below && below.classList.contains("block")) {
                     player.velocityY = 0;
                     player.jumping = false;
+                    console.log("Landed");
+                    player.y = Math.floor(player.y);
                 }
             }
 
@@ -161,13 +167,13 @@
             }
 
             // Move player to the right if no block ahead
-            const ahead = getCell(player.x + 1, player.y);
+            const ahead = getCell(player.x + 1, Math.floor(player.y));
             if (ahead && !ahead.classList.contains("block")) {
                 player.x++;
             }
 
             // Check for spikes
-            const currentCell = getCell(player.x, player.y);
+            const currentCell = getCell(player.x, Math.floor(player.y));
             if (currentCell && currentCell.classList.contains("spike")) {
                 alert("Game Over!");
                 restartGame();
@@ -184,22 +190,11 @@
 
         // Handle jump
         window.addEventListener("keydown", (e) => {
+            console.log("Key pressed");
             if (e.code === "Space" && !player.jumping) {
                 player.velocityY = -2.5;
                 player.jumping = true;
-            }
-        });
-
-        // Handle level upload
-        uploadInput.addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const data = JSON.parse(reader.result);
-                    loadLevel(data);
-                };
-                reader.readAsText(file);
+                console.log("Jumped");
             }
         });
 
