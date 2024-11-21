@@ -87,7 +87,7 @@
         // Initialize empty grid
         function initializeGrid() {
             gameContainer.innerHTML = "";
-            for (let y = 0; y < (gridHeight+1); y++) {
+            for (let y = 0; y < (gridHeight + 1); y++) {
                 for (let x = 0; x < gridWidth; x++) {
                     const cell = document.createElement("div");
                     cell.classList.add("cell");
@@ -106,8 +106,11 @@
         function loadLevel(data) {
             initializeGrid();
             data.forEach((element) => {
+                console.log(element);
                 const { x, y, type } = element;
-                const cell = getCell(x, y);
+                // Shift everything up by one row to make room for the bottom blocks
+                const cell = getCell(x, y < gridHeight ? y : gridHeight - 1);
+                console.log(cell);
                 if (cell) cell.classList.add(type);
             });
             renderPlayer();
@@ -201,6 +204,24 @@
         // Button actions
         startButton.addEventListener("click", startGame);
         restartButton.addEventListener("click", restartGame);
+
+        // Handle file upload
+        uploadInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const levelData = JSON.parse(event.target.result);
+                        loadLevel(levelData);
+                    } catch (error) {
+                        console.error("Error loading level:", error);
+                        alert("Invalid level file!");
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
 
         // Initialize empty grid on load
         initializeGrid();
