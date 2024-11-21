@@ -106,11 +106,8 @@
         function loadLevel(data) {
             initializeGrid();
             data.forEach((element) => {
-                console.log(element);
                 const { x, y, type } = element;
-                // Shift everything up by one row to make room for the bottom blocks
                 const cell = getCell(x, y < gridHeight ? y : gridHeight - 1);
-                console.log(cell);
                 if (cell) cell.classList.add(type);
             });
             renderPlayer();
@@ -149,25 +146,37 @@
         function updateGame() {
             // Apply gravity
             player.velocityY += 0.5;
+            // Check for collision when moving upward BEFORE moving
+            if (player.velocityY < 0) {
+                const above = getCell(player.x, player.y-1);
+                if (above && above.classList.contains("block")) {
+                    player.y = Math.ceil(player.y);
+                    player.velocityY = 0;
+                }
+            }
 
-            // Check for collision with blocks
+            // Update player position AFTER ceiling check
+            player.y += player.velocityY;
+
+            // Check if player is inside a block and correct position
+            const currentBlock = getCell(player.x, Math.floor(player.y));
+            if (currentBlock && currentBlock.classList.contains("block")) {
+                player.y = Math.floor(player.y) - 1;
+                player.velocityY = 0;
+                player.jumping = false;
+            }
+
+            // Regular collision check for blocks below
             if (player.velocityY > 0) {
                 const below = getCell(player.x, Math.floor(player.y + 1));
                 if (below && below.classList.contains("block")) {
                     player.velocityY = 0;
                     player.jumping = false;
-                    console.log("Landed");
                     player.y = Math.floor(player.y);
                 }
             }
 
-            // Update player position
-            player.y += player.velocityY;
 
-            // Ensure player stays in bounds
-            if (player.y >= gridHeight) {
-                player.y = gridHeight - 1;
-            }
 
             // Move player to the right if no block ahead
             const ahead = getCell(player.x + 1, Math.floor(player.y));
@@ -193,11 +202,9 @@
 
         // Handle jump
         window.addEventListener("keydown", (e) => {
-            console.log("Key pressed");
             if (e.code === "Space" && !player.jumping) {
                 player.velocityY = -2.5;
                 player.jumping = true;
-                console.log("Jumped");
             }
         });
 
