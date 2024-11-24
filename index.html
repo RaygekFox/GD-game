@@ -59,6 +59,15 @@
         }
         .cell.player {
             background: #219ebc;
+            position: relative;
+        }
+        .player-sprite {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #219ebc;
+            transition: transform 0.1s linear;
+            z-index: 1;
         }
     </style>
 </head>
@@ -112,9 +121,19 @@
 
         // Render the player
         function renderPlayer() {
-            document.querySelectorAll(".cell.player").forEach(cell => cell.classList.remove("player"));
-            const playerCell = getCell(player.x, player.y);
-            if (playerCell) playerCell.classList.add("player");
+            // Remove old player sprite if it exists
+            const oldSprite = document.querySelector(".player-sprite");
+            if (oldSprite) oldSprite.remove();
+
+            // Create and position the player sprite
+            const sprite = document.createElement("div");
+            sprite.classList.add("player-sprite");
+            gameContainer.appendChild(sprite);
+
+            // Calculate pixel position (20 is the cell size)
+            const pixelX = player.x * 20;
+            const pixelY = player.y * 20;
+            sprite.style.transform = `translate(${pixelX}px, ${pixelY}px)`;
         }
 
         // Get a specific cell
@@ -140,22 +159,22 @@
             player.velocityY += 0.5; // Gravity
             player.y += player.velocityY;
 
-            const below = getCell(player.x, Math.floor(player.y + 1));
+            // Check collision with floor using Math.ceil for better precision
+            const below = getCell(Math.floor(player.x), Math.ceil(player.y));
             if (below && below.classList.contains("block")) {
-                player.y = Math.floor(player.y);
+                player.y = Math.ceil(player.y) - 1;
                 player.velocityY = 0;
                 player.jumping = false;
             }
 
-            const currentCell = getCell(player.x, Math.floor(player.y));
+            // Smooth horizontal movement
+            player.x += 0.2; // Slower, smoother movement
+
+            // Check collision with spikes
+            const currentCell = getCell(Math.floor(player.x), Math.floor(player.y));
             if (currentCell && currentCell.classList.contains("spike")) {
                 alert("Game Over!");
                 restartGame();
-            }
-
-            const ahead = getCell(player.x + 1, Math.floor(player.y));
-            if (ahead && !ahead.classList.contains("block")) {
-                player.x++;
             }
 
             if (player.x >= 49) {
