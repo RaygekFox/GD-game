@@ -69,6 +69,17 @@
             transition: transform 0.1s linear;
             z-index: 1;
         }
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px;
+            color: white;
+        }
+
+        .speed-control input[type="range"] {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -79,6 +90,11 @@
         <select id="level-selector">
             <option value="">Select Level</option>
         </select>
+        <div class="speed-control">
+            <label for="speed-slider">Speed: </label>
+            <input type="range" id="speed-slider" min="0.2" max="1.0" step="0.1" value="0.5">
+            <span id="speed-value">0.5</span>
+        </div>
     </div>
     <div id="game-container" class="game-container"></div>
 
@@ -87,6 +103,9 @@
         const startButton = document.getElementById("start-btn");
         const restartButton = document.getElementById("restart-btn");
         const levelSelector = document.getElementById("level-selector");
+        const speedSlider = document.getElementById("speed-slider");
+        const speedValue = document.getElementById("speed-value");
+        let horizontalSpeed = 0.5; // Default speed
 
         const levelsFolder = './Levels/'; // Path to levels folder
         const levelsFile = `${levelsFolder}levels.json`; // Path to levels.json
@@ -164,7 +183,7 @@
             
             // Update position
             player.y += player.velocityY;
-            player.x += 1; // Horizontal speed
+            player.x += horizontalSpeed; // Use the variable instead of hardcoded value
 
             // Floor and ceiling collision
             const floorY = Math.ceil(player.y);
@@ -275,6 +294,11 @@
 
         startButton.addEventListener("click", startGame);
         restartButton.addEventListener("click", restartGame);
+
+        speedSlider.addEventListener("input", (e) => {
+            horizontalSpeed = parseFloat(e.target.value);
+            speedValue.textContent = horizontalSpeed.toFixed(1);
+        });
     </script>
 </body>
 </html>
