@@ -80,7 +80,7 @@
         const levelSelector = document.getElementById("level-selector");
 
         const levelsFolder = './Levels/'; // Path to levels folder
-        const levelFiles = ["level1.json", "level2.json"]; // List of available levels
+        const levelsFile = `${levelsFolder}levels.json`; // Path to levels.json
 
         let player = { x: 0, y: 9, velocityY: 0, jumping: false };
         let gameInterval = null;
@@ -174,15 +174,23 @@
             }
         });
 
-        // Populate level selector
-        function populateLevelSelector() {
-            levelSelector.innerHTML = `<option value="">Select Level</option>`;
-            levelFiles.forEach(file => {
-                const option = document.createElement("option");
-                option.value = file;
-                option.textContent = file.replace('.json', '');
-                levelSelector.appendChild(option);
-            });
+        // Fetch levels list
+        function fetchLevels() {
+            fetch(levelsFile)
+                .then(response => response.json())
+                .then(files => {
+                    levelSelector.innerHTML = `<option value="">Select Level</option>`;
+                    files.forEach(file => {
+                        const option = document.createElement("option");
+                        option.value = file;
+                        option.textContent = file.replace('.json', '');
+                        levelSelector.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error("Error fetching levels:", error);
+                    alert("Failed to fetch levels.");
+                });
         }
 
         // Load selected level
@@ -201,7 +209,7 @@
 
         // Initialize the game
         initializeGrid();
-        populateLevelSelector();
+        fetchLevels();
 
         startButton.addEventListener("click", startGame);
         restartButton.addEventListener("click", restartGame);
