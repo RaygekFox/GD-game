@@ -121,18 +121,15 @@
 
         // Render the player
         function renderPlayer() {
-            // Remove old player sprite if it exists
             const oldSprite = document.querySelector(".player-sprite");
             if (oldSprite) oldSprite.remove();
 
-            // Create and position the player sprite
             const sprite = document.createElement("div");
             sprite.classList.add("player-sprite");
             gameContainer.appendChild(sprite);
 
-            // Calculate pixel position (20 is the cell size)
             const pixelX = player.x * 20;
-            const pixelY = player.y * 20;
+            const pixelY = player.y * 20 + 10;
             sprite.style.transform = `translate(${pixelX}px, ${pixelY}px)`;
         }
 
@@ -157,6 +154,8 @@
         // Update game logic
         function updateGame() {
             player.velocityY += 0.5; // Gravity
+            
+            player.velocityY = Math.min(player.velocityY, 1);
             
             // Store the previous position for collision checks
             const prevX = player.x;
