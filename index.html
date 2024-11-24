@@ -82,7 +82,16 @@
         const levelsFolder = './Levels/'; // Path to levels folder
         const levelsFile = `${levelsFolder}levels.json`; // Path to levels.json
 
-        let player = { x: 0, y: 9, velocityY: 0, jumping: false };
+        const player = {
+            x: 0, // Player's x position in pixels
+            y: 180, // Player's y position in pixels
+            velocityX: 2, // Horizontal velocity in pixels/frame
+            velocityY: 0, // Vertical velocity in pixels/frame
+            width: 20, // Player's width in pixels
+            height: 20, // Player's height in pixels
+            jumping: false // Jumping state
+        };
+
         let gameInterval = null;
 
         // Initialize empty grid
@@ -113,13 +122,87 @@
         // Render the player
         function renderPlayer() {
             document.querySelectorAll(".cell.player").forEach(cell => cell.classList.remove("player"));
-            const playerCell = getCell(player.x, player.y);
+            const playerCell = getCell(Math.floor(player.x / 20), Math.floor(player.y / 20));
             if (playerCell) playerCell.classList.add("player");
         }
 
         // Get a specific cell
         function getCell(x, y) {
             return document.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+        }
+
+        // Function to check collisions and resolve them
+        function checkCollisions() {
+            const playerLeft = player.x;
+            const playerRight = player.x + player.width;
+            const playerTop = player.y;
+            const playerBottom = player.y + player.height;
+
+            // Check surrounding blocks
+            const blocksToCheck = [
+                { x: Math.floor(playerLeft / 20), y: Math.floor(playerTop / 20) },    // Top-left
+                { x: Math.floor(playerRight / 20), y: Math.floor(playerTop / 20) },   // Top-right
+                { x: Math.floor(playerLeft / 20), y: Math.floor(playerBottom / 20) }, // Bottom-left
+                { x: Math.floor(playerRight / 20), y: Math.floor(playerBottom / 20) } // Bottom-right
+            ];
+
+            blocksToCheck.forEach(({ x, y }) => {
+                const block = getCell(x, y);
+                if (block && block.classList.contains("block")) {
+                    // Horizontal collision
+                    if (playerRight > x * 20 && playerLeft < (x + 1) * 20) {
+                        if (player.velocityX > 0 && playerRight > x * 20) { // Moving right
+                            player.x = x * 20 - player.width;
+                            player.velocityX = 0;
+                        } else if (player.velocityX < 0 && playerLeft < (x + 1) * 20) { // Moving left
+                            player.x = (x + 1) * 20;
+                            player.velocityX = 0;
+                        }
+                    }
+
+                    // Vertical collision
+                    if (playerBottom > y * 20 && playerTop < (y + 1) * 20) {
+                        if (player.velocityY > 0 && playerBottom > y * 20) { // Moving down
+                            player.y = y * 20 - player.height;
+                            player.velocityY = 0;
+                            player.jumping = false; // Allow jumping again
+                        } else if (player.velocityY < 0 && playerTop < (y + 1) * 20) { // Moving up
+                            player.y = (y + 1) * 20;
+                            player.velocityY = 0;
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update game logic
+        function updateGame() {
+            // Apply gravity
+            player.velocityY += 0.5;
+
+            // Update player position
+            player.x += player.velocityX;
+            player.y += player.velocityY;
+
+            // Check for collisions
+            checkCollisions();
+
+            // Check for spikes
+            const currentCell = getCell(Math.floor(player.x / 20), Math.floor(player.y / 20));
+            if (currentCell && currentCell.classList.contains("spike")) {
+                alert("Game Over!");
+                restartGame();
+                return;
+            }
+
+            // Check for win condition
+            if (player.x >= 50 * 20 - 20) { // 50 cells wide, each 20 pixels
+                alert("You Win!");
+                restartGame();
+                return;
+            }
+
+            renderPlayer();
         }
 
         // Start the game
@@ -130,46 +213,19 @@
 
         // Restart the game
         function restartGame() {
-            player = { x: 0, y: 9, velocityY: 0, jumping: false };
-            renderPlayer();
+            player.x = 0;
+            player.y = 180;
+            player.velocityX = 2;
+            player.velocityY = 0;
+            player.jumping = false;
             clearInterval(gameInterval);
-        }
-
-        // Update game logic
-        function updateGame() {
-            player.velocityY += 0.5; // Gravity
-            player.y += player.velocityY;
-
-            const below = getCell(player.x, Math.floor(player.y + 1));
-            if (below && below.classList.contains("block")) {
-                player.y = Math.floor(player.y);
-                player.velocityY = 0;
-                player.jumping = false;
-            }
-
-            const currentCell = getCell(player.x, Math.floor(player.y));
-            if (currentCell && currentCell.classList.contains("spike")) {
-                alert("Game Over!");
-                restartGame();
-            }
-
-            const ahead = getCell(player.x + 1, Math.floor(player.y));
-            if (ahead && !ahead.classList.contains("block")) {
-                player.x++;
-            }
-
-            if (player.x >= 49) {
-                alert("You Win!");
-                restartGame();
-            }
-
-            renderPlayer();
+            initializeGrid();
         }
 
         // Handle jump
         window.addEventListener("keydown", e => {
             if (e.code === "Space" && !player.jumping) {
-                player.velocityY = -2.5;
+                player.velocityY = -10;
                 player.jumping = true;
             }
         });
