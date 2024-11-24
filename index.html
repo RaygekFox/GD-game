@@ -157,29 +157,72 @@
         // Update game logic
         function updateGame() {
             player.velocityY += 0.5; // Gravity
+            
+            // Store the previous position for collision checks
+            const prevX = player.x;
+            const prevY = player.y;
+            
+            // Update position
             player.y += player.velocityY;
+            player.x += 0.2; // Horizontal movement
 
-            // Check collision with floor using Math.ceil for better precision
-            const below = getCell(Math.floor(player.x), Math.ceil(player.y));
-            if (below && below.classList.contains("block")) {
-                player.y = Math.ceil(player.y) - 1;
-                player.velocityY = 0;
-                player.jumping = false;
+            // Floor and ceiling collision
+            const floorY = Math.ceil(player.y);
+            const ceilY = Math.floor(player.y);
+            const leftX = Math.floor(player.x);
+            const rightX = Math.ceil(player.x);
+
+            // Check floor collision
+            if (player.velocityY > 0) { // Moving down
+                const bottomLeft = getCell(leftX, floorY);
+                const bottomRight = getCell(rightX, floorY);
+                
+                if ((bottomLeft && bottomLeft.classList.contains("block")) || 
+                    (bottomRight && bottomRight.classList.contains("block"))) {
+                    player.y = floorY - 1;
+                    player.velocityY = 0;
+                    player.jumping = false;
+                }
             }
 
-            // Smooth horizontal movement
-            player.x += 0.2; // Slower, smoother movement
+            // Check ceiling collision
+            if (player.velocityY < 0) { // Moving up
+                const topLeft = getCell(leftX, ceilY);
+                const topRight = getCell(rightX, ceilY);
+                
+                if ((topLeft && topLeft.classList.contains("block")) || 
+                    (topRight && topRight.classList.contains("block"))) {
+                    player.y = ceilY + 1;
+                    player.velocityY = 0;
+                }
+            }
 
-            // Check collision with spikes
-            const currentCell = getCell(Math.floor(player.x), Math.floor(player.y));
-            if (currentCell && currentCell.classList.contains("spike")) {
-                alert("Game Over!");
-                restartGame();
+            // Check horizontal collision
+            const rightCell = getCell(rightX, Math.floor(player.y));
+            if (rightCell && rightCell.classList.contains("block")) {
+                player.x = rightX - 1;
+            }
+
+            // Check spike collision (using more precise hitbox)
+            const currentCells = [
+                getCell(leftX, Math.floor(player.y)),
+                getCell(rightX, Math.floor(player.y)),
+                getCell(leftX, Math.ceil(player.y)),
+                getCell(rightX, Math.ceil(player.y))
+            ];
+
+            for (const cell of currentCells) {
+                if (cell && cell.classList.contains("spike")) {
+                    alert("Game Over!");
+                    restartGame();
+                    return;
+                }
             }
 
             if (player.x >= 49) {
                 alert("You Win!");
                 restartGame();
+                return;
             }
 
             renderPlayer();
