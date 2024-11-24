@@ -21,7 +21,8 @@
         .controls {
             margin-bottom: 20px;
         }
-        .controls button {
+        .controls button,
+        .controls select {
             padding: 10px 15px;
             font-size: 16px;
             border: none;
@@ -32,11 +33,9 @@
             cursor: pointer;
             transition: background 0.3s;
         }
-        .controls button:hover {
+        .controls button:hover,
+        .controls select:hover {
             background: #ff006e;
-        }
-        #upload {
-            margin-top: 10px;
         }
         .game-container {
             display: grid;
@@ -68,7 +67,9 @@
     <div class="controls">
         <button id="start-btn">Start</button>
         <button id="restart-btn">Restart</button>
-        <input type="file" id="upload" accept=".json">
+        <select id="level-selector">
+            <option value="">Select Level</option>
+        </select>
     </div>
     <div id="game-container" class="game-container"></div>
 
@@ -76,25 +77,22 @@
         const gameContainer = document.getElementById("game-container");
         const startButton = document.getElementById("start-btn");
         const restartButton = document.getElementById("restart-btn");
-        const uploadInput = document.getElementById("upload");
+        const levelSelector = document.getElementById("level-selector");
 
-        const levelData = [];
-        const gridWidth = 50;
-        const gridHeight = 10;
+        const levelsFolder = './Levels/'; // Path to levels folder
+        const levelFiles = ["level1.json", "level2.json"]; // List of available levels
+
         let player = { x: 0, y: 9, velocityY: 0, jumping: false };
         let gameInterval = null;
 
         // Initialize empty grid
         function initializeGrid() {
             gameContainer.innerHTML = "";
-            for (let y = 0; y < (gridHeight + 1); y++) {
-                for (let x = 0; x < gridWidth; x++) {
+            for (let y = 0; y < 10 + 1; y++) { // +1 for the bottom row
+                for (let x = 0; x < 50; x++) {
                     const cell = document.createElement("div");
                     cell.classList.add("cell");
-                    // Add blocks for the bottom row
-                    if (y === gridHeight) {
-                        cell.classList.add("block");
-                    }
+                    if (y === 10) cell.classList.add("block"); // Bottom row blocks
                     cell.dataset.x = x;
                     cell.dataset.y = y;
                     gameContainer.appendChild(cell);
@@ -105,9 +103,8 @@
         // Load level data into the grid
         function loadLevel(data) {
             initializeGrid();
-            data.forEach((element) => {
-                const { x, y, type } = element;
-                const cell = getCell(x, y < gridHeight ? y : gridHeight - 1);
+            data.forEach(({ x, y, type }) => {
+                const cell = getCell(x, Math.min(y, 9)); // Cap at row 9
                 if (cell) cell.classList.add(type);
             });
             renderPlayer();
@@ -115,8 +112,7 @@
 
         // Render the player
         function renderPlayer() {
-            const cells = document.querySelectorAll(".cell.player");
-            cells.forEach((cell) => cell.classList.remove("player"));
+            document.querySelectorAll(".cell.player").forEach(cell => cell.classList.remove("player"));
             const playerCell = getCell(player.x, player.y);
             if (playerCell) playerCell.classList.add("player");
         }
@@ -129,10 +125,7 @@
         // Start the game
         function startGame() {
             if (gameInterval) clearInterval(gameInterval);
-
-            gameInterval = setInterval(() => {
-                updateGame();
-            }, 100);
+            gameInterval = setInterval(updateGame, 100);
         }
 
         // Restart the game
@@ -144,55 +137,28 @@
 
         // Update game logic
         function updateGame() {
-            // Apply gravity
-            player.velocityY += 0.5;
-            // Check for collision when moving upward BEFORE moving
-            if (player.velocityY < 0) {
-                const above = getCell(player.x, player.y-1);
-                if (above && above.classList.contains("block")) {
-                    player.y = Math.ceil(player.y);
-                    player.velocityY = 0;
-                }
-            }
-
-            // Update player position AFTER ceiling check
+            player.velocityY += 0.5; // Gravity
             player.y += player.velocityY;
 
-            // Check if player is inside a block and correct position
-            const currentBlock = getCell(player.x, Math.floor(player.y));
-            if (currentBlock && currentBlock.classList.contains("block")) {
-                player.y = Math.floor(player.y) - 1;
+            const below = getCell(player.x, Math.floor(player.y + 1));
+            if (below && below.classList.contains("block")) {
+                player.y = Math.floor(player.y);
                 player.velocityY = 0;
                 player.jumping = false;
             }
 
-            // Regular collision check for blocks below
-            if (player.velocityY > 0) {
-                const below = getCell(player.x, Math.floor(player.y + 1));
-                if (below && below.classList.contains("block")) {
-                    player.velocityY = 0;
-                    player.jumping = false;
-                    player.y = Math.floor(player.y);
-                }
-            }
-
-
-
-            // Move player to the right if no block ahead
-            const ahead = getCell(player.x + 1, Math.floor(player.y));
-            if (ahead && !ahead.classList.contains("block")) {
-                player.x++;
-            }
-
-            // Check for spikes
             const currentCell = getCell(player.x, Math.floor(player.y));
             if (currentCell && currentCell.classList.contains("spike")) {
                 alert("Game Over!");
                 restartGame();
             }
 
-            // Check for win condition
-            if (player.x >= gridWidth - 1) {
+            const ahead = getCell(player.x + 1, Math.floor(player.y));
+            if (ahead && !ahead.classList.contains("block")) {
+                player.x++;
+            }
+
+            if (player.x >= 49) {
                 alert("You Win!");
                 restartGame();
             }
@@ -201,37 +167,44 @@
         }
 
         // Handle jump
-        window.addEventListener("keydown", (e) => {
+        window.addEventListener("keydown", e => {
             if (e.code === "Space" && !player.jumping) {
                 player.velocityY = -2.5;
                 player.jumping = true;
             }
         });
 
-        // Button actions
-        startButton.addEventListener("click", startGame);
-        restartButton.addEventListener("click", restartGame);
+        // Populate level selector
+        function populateLevelSelector() {
+            levelSelector.innerHTML = `<option value="">Select Level</option>`;
+            levelFiles.forEach(file => {
+                const option = document.createElement("option");
+                option.value = file;
+                option.textContent = file.replace('.json', '');
+                levelSelector.appendChild(option);
+            });
+        }
 
-        // Handle file upload
-        uploadInput.addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    try {
-                        const levelData = JSON.parse(event.target.result);
-                        loadLevel(levelData);
-                    } catch (error) {
+        // Load selected level
+        levelSelector.addEventListener("change", () => {
+            const selectedLevel = levelSelector.value;
+            if (selectedLevel) {
+                fetch(`${levelsFolder}${selectedLevel}`)
+                    .then(response => response.json())
+                    .then(levelData => loadLevel(levelData))
+                    .catch(error => {
                         console.error("Error loading level:", error);
-                        alert("Invalid level file!");
-                    }
-                };
-                reader.readAsText(file);
+                        alert("Failed to load level.");
+                    });
             }
         });
 
-        // Initialize empty grid on load
+        // Initialize the game
         initializeGrid();
+        populateLevelSelector();
+
+        startButton.addEventListener("click", startGame);
+        restartButton.addEventListener("click", restartGame);
     </script>
 </body>
 </html>
