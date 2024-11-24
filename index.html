@@ -128,7 +128,7 @@
             sprite.classList.add("player-sprite");
             gameContainer.appendChild(sprite);
 
-            const pixelX = player.x * 20;
+            const pixelX = player.x * 20 + 10;
             const pixelY = player.y * 20 + 10;
             sprite.style.transform = `translate(${pixelX}px, ${pixelY}px)`;
         }
